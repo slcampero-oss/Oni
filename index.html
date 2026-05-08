@@ -476,6 +476,8 @@ let history = [];
 let muted = false;
 let isBusy = false;
 let currentAudio = null;
+let gcalToken = null;
+let tokenClient = null;
 
 function getKey(k) { return localStorage.getItem(k) || ''; }
 function setKey(k, v) { localStorage.setItem(k, v); }
@@ -510,8 +512,9 @@ function saveGroqKeyFromSetup() {
   const key = document.getElementById('setup-key-input').value.trim();
   if (!key) { toast('KEY REQUIRED'); return; }
   setKey('anth_key', key);
-  showChat();
   toast('INTERFACE INITIALIZED');
+  // Small delay to ensure storage is flushed before showChat reads it
+  setTimeout(() => showChat(), 100);
 }
 
 function populateVoiceList() {
@@ -763,8 +766,6 @@ document.getElementById('user-input').addEventListener('input', function() {
 // ── GOOGLE CALENDAR ──────────────────────────────────────────────
 const GCAL_CLIENT_ID = '660265931703-r9t68unmu70er4hncb32jm1o61mck4uh.apps.googleusercontent.com';
 const GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
-let gcalToken = null;
-let tokenClient = null;
 
 function calDot(color) {
   const d = document.getElementById('cal-dot');
