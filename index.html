@@ -11,6 +11,7 @@
   <link rel="apple-touch-icon" href="icon-192.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <title>ONI // CYBERACME</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -365,6 +366,7 @@
       <button class="icon-btn" id="mute-btn" title="Toggle audio" onclick="toggleMute()">
         <svg id="mute-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       </button>
+      <div id="cal-dot" title="Google Calendar" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;cursor:pointer;" onclick="handleCalendarAuth()"></div>
       <button class="icon-btn" id="settings-btn" title="Settings" onclick="openSettings()">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
@@ -410,6 +412,8 @@
       <button class="quick-btn" onclick="sendQuick('What should my priorities be today?')">PRIORITIES</button>
       <button class="quick-btn" onclick="sendQuick('Assign me a contract.')">CONTRACTS</button>
       <button class="quick-btn" onclick="sendQuick('Status report.')">STATUS</button>
+      <button class="quick-btn" onclick="checkCalendarNow()">CALENDAR</button>
+      <button class="quick-btn" id="gcal-btn" onclick="handleCalendarAuth()">SYNC GCAL</button>
     </div>
 
     <div class="input-row">
@@ -488,11 +492,17 @@ function init() {
   }
 }
 
-function showChat() {
+async function showChat() {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('chat-screen').style.display = 'flex';
   if (document.getElementById('messages').children.length === 0) {
-    addONIMessage("Your neural interface is online, Runner. Consciousness transfer confirmed. I am ONI — your CyberAcme liaison on Tau Ceti IV. How may I direct your attention.");
+    const greeting = "Your neural interface is online, Runner. Consciousness transfer confirmed. I am ONI — your CyberAcme liaison on Tau Ceti IV. Scanning your schedule.";
+    addONIMessage(greeting);
+    if (!muted) speakText(null, greeting);
+    // If calendar already connected, brief immediately
+    if (gcalToken) {
+      setTimeout(briefCalendarOnStartup, 1200);
+    }
   }
 }
 
@@ -750,11 +760,147 @@ document.getElementById('user-input').addEventListener('input', function() {
   this.style.height = Math.min(this.scrollHeight, 100) + 'px';
 });
 
+// ── GOOGLE CALENDAR ──────────────────────────────────────────────
+const GCAL_CLIENT_ID = '660265931703-r9t68unmu70er4hncb32jm1o61mck4uh.apps.googleusercontent.com';
+const GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+let gcalToken = null;
+let tokenClient = null;
+
+function calDot(color) {
+  const d = document.getElementById('cal-dot');
+  if (d) d.style.background = color;
+}
+
+function initGoogleAuth() {
+  if (!window.google) { setTimeout(initGoogleAuth, 500); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { toast('GCAL AUTH FAILED'); calDot('var(--danger)'); return; }
+      gcalToken = resp.access_token;
+      setKey('gcal_token', gcalToken);
+      calDot('var(--accent)');
+      toast('GCAL SYNCED');
+      document.getElementById('gcal-btn').textContent = 'GCAL ✓';
+      await briefCalendarOnStartup();
+    }
+  });
+  // Restore token if we have one
+  const saved = getKey('gcal_token');
+  if (saved) { gcalToken = saved; calDot('var(--accent)'); document.getElementById('gcal-btn').textContent = 'GCAL ✓'; }
+}
+
+function handleCalendarAuth() {
+  if (!tokenClient) { toast('GOOGLE NOT READY'); return; }
+  tokenClient.requestAccessToken();
+}
+
+async function fetchTodayEvents() {
+  if (!gcalToken) return null;
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${endOfDay}&singleEvents=true&orderBy=startTime&maxResults=10`,
+      { headers: { Authorization: `Bearer ${gcalToken}` } }
+    );
+    if (res.status === 401) {
+      // Token expired — clear and prompt re-auth
+      gcalToken = null;
+      setKey('gcal_token', '');
+      calDot('var(--warn)');
+      document.getElementById('gcal-btn').textContent = 'SYNC GCAL';
+      toast('GCAL TOKEN EXPIRED · RE-SYNC');
+      return null;
+    }
+    const data = await res.json();
+    return data.items || [];
+  } catch(e) { return null; }
+}
+
+async function fetchUpcomingEvents() {
+  if (!gcalToken) return null;
+  const now = new Date().toISOString();
+  const weekAhead = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now}&timeMax=${weekAhead}&singleEvents=true&orderBy=startTime&maxResults=15`,
+      { headers: { Authorization: `Bearer ${gcalToken}` } }
+    );
+    if (res.status === 401) { gcalToken = null; setKey('gcal_token', ''); calDot('var(--warn)'); return null; }
+    const data = await res.json();
+    return data.items || [];
+  } catch(e) { return null; }
+}
+
+function formatEvents(events) {
+  if (!events || events.length === 0) return 'No events detected.';
+  return events.map(e => {
+    const start = e.start.dateTime ? new Date(e.start.dateTime) : new Date(e.start.date);
+    const time = e.start.dateTime
+      ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : 'All day';
+    return `${time}: ${e.summary || 'Unnamed event'}`;
+  }).join('
+');
+}
+
+async function briefCalendarOnStartup() {
+  const events = await fetchTodayEvents();
+  if (events === null) return;
+  const formatted = formatEvents(events);
+  const count = events.length;
+  const prompt = count === 0
+    ? `The Runner's calendar is clear today. Deliver a brief ONI-style observation about this — perhaps a veiled corporate comment about productivity or rest. Keep it to 1-2 sentences in character.`
+    : `The Runner has ${count} event(s) today:
+${formatted}
+
+Deliver a brief ONI-style morning briefing of these events. Be concise, clinical, in character. Mention the most important ones. 2-4 sentences max.`;
+  isBusy = true;
+  showTyping();
+  try {
+    const reply = await callClaude(prompt);
+    history.push({ role: 'assistant', content: reply });
+    hideTyping();
+    addONIMessage(reply);
+    if (!muted) speakText(null, reply);
+  } catch(e) {
+    hideTyping();
+  } finally {
+    isBusy = false;
+  }
+}
+
+async function checkCalendarNow() {
+  if (!gcalToken) {
+    toast('GCAL NOT CONNECTED · TAP SYNC GCAL');
+    return;
+  }
+  const [today, upcoming] = await Promise.all([fetchTodayEvents(), fetchUpcomingEvents()]);
+  const todayStr = formatEvents(today);
+  const upcomingStr = formatEvents(upcoming);
+  const prompt = `Runner's calendar data:
+
+TODAY:
+${todayStr}
+
+NEXT 7 DAYS:
+${upcomingStr}
+
+Give the Runner a full calendar briefing in ONI's voice. Highlight anything urgent or notable. Keep it concise and in character.`;
+  await processMessage(prompt);
+}
+
+// ── END GOOGLE CALENDAR ───────────────────────────────────────────
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 init();
+setTimeout(initGoogleAuth, 800);
 </script>
 </body>
 </html>
