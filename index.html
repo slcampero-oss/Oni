@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#080c0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ONI" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <title>ONI // CYBERACME</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080c0f;
+      --surface: #0d1318;
+      --panel: #0a1520;
+      --border: #1a2a35;
+      --border-hi: #2a4a60;
+      --accent: #4dd9ac;
+      --accent-dim: #2a7a60;
+      --accent-dark: #0d3028;
+      --text: #c8dde8;
+      --muted: #4a6070;
+      --warn: #d97a4d;
+      --danger: #d94d4d;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* SCAN LINE */
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 80px;
+      background: linear-gradient(to bottom, transparent, rgba(77,217,172,0.03), transparent);
+      animation: scan 8s linear infinite;
+      pointer-events: none;
+      z-index: 10;
+    }
+    @keyframes scan { from { top: -80px; } to { top: 100%; } }
+
+    /* HEADER */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.3;
+    }
+
+    .logo {
+      width: 38px; height: 38px;
+      border: 1px solid var(--accent-dim);
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0;
+      background: var(--accent-dark);
+    }
+    .logo svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.5; }
+    .logo-dot {
+      position: absolute; top: -3px; right: -3px;
+      width: 7px; height: 7px;
+      background: var(--accent); border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.8)} }
+
+    .header-info { flex: 1; min-width: 0; }
+    .header-name {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px; color: var(--accent);
+      letter-spacing: 0.15em;
+    }
+    .header-sub {
+      font-size: 10px; color: var(--muted);
+      letter-spacing: 0.08em; margin-top: 1px;
+    }
+
+    .header-controls { display: flex; gap: 8px; align-items: center; }
+    .icon-btn {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 2px; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--muted);
+      transition: all 0.15s;
+    }
+    .icon-btn:hover, .icon-btn.active { border-color: var(--accent-dim); color: var(--accent); background: var(--accent-dark); }
+    .icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+    /* API KEY SETUP */
+    #setup-screen {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px; gap: 20px;
+      background: var(--bg);
+    }
+    .setup-title {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px; color: var(--accent);
+      letter-spacing: 0.15em; text-align: center;
+    }
+    .setup-body { font-size: 14px; color: var(--muted); text-align: center; line-height: 1.6; max-width: 300px; }
+    .setup-body a { color: var(--accent-dim); }
+    .setup-field {
+      width: 100%; background: var(--panel);
+      border: 1px solid var(--border); border-radius: 2px;
+      padding: 12px 14px; color: var(--text);
+      font-family: 'Share Tech Mono', monospace; font-size: 12px;
+      outline: none; letter-spacing: 0.05em;
+    }
+    .setup-field:focus { border-color: var(--accent-dim); }
+    .setup-field::placeholder { color: var(--muted); }
+    .setup-btn {
+      width: 100%; background: var(--accent-dim);
+      border: none; border-radius: 2px; padding: 12px;
+      color: var(--bg); font-family: 'Rajdhani', sans-serif;
+      font-size: 14px; font-weight: 600; letter-spacing: 0.1em;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .setup-btn:hover { background: var(--accent); }
+    .setup-note {
+      font-size: 11px; color: var(--muted); text-align: center; line-height: 1.5;
+    }
+
+    /* MESSAGES */
+    #chat-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    #messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 14px;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    #messages::-webkit-scrollbar { width: 3px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+    .msg { display: flex; flex-direction: column; gap: 3px; animation: fadeUp 0.25s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+    .msg-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px; letter-spacing: 0.12em;
+    }
+    .msg.oni .msg-label { color: var(--accent-dim); }
+    .msg.user .msg-label { color: var(--muted); text-align: right; }
+
+    .msg-bubble {
+      font-size: 14px; line-height: 1.6;
+      padding: 10px 13px; border-radius: 2px;
+      color: var(--text); letter-spacing: 0.02em;
+      max-width: 88%; word-wrap: break-word;
+    }
+    .msg.oni .msg-bubble {
+      background: var(--panel); border: 1px solid var(--border);
+      border-left: 2px solid var(--accent-dim);
+      align-self: flex-start;
+    }
+    .msg.user .msg-bubble {
+      background: #0e1d2a; border: 1px solid #1e3040;
+      border-right: 2px solid var(--muted);
+      align-self: flex-end; text-align: right;
+    }
+
+    .msg-actions {
+      align-self: flex-start;
+      display: flex; gap: 6px; margin-top: 3px;
+    }
+    .speak-btn {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 2px; padding: 3px 8px;
+      color: var(--muted); font-family: 'Share Tech Mono', monospace;
+      font-size: 9px; letter-spacing: 0.08em;
+      cursor: pointer; display: flex; align-items: center; gap: 4px;
+      transition: all 0.15s;
+    }
+    .speak-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+    .speak-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    /* TYPING */
+    .typing-wrap { display: flex; flex-direction: column; gap: 3px; animation: fadeUp 0.25s ease; }
+    .typing-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--accent-dim); letter-spacing: 0.12em; }
+    .typing-bubble {
+      background: var(--panel); border: 1px solid var(--border);
+      border-left: 2px solid var(--accent-dim);
+      border-radius: 2px; padding: 12px 14px;
+      align-self: flex-start; display: flex; gap: 5px; align-items: center;
+    }
+    .dot { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; animation: blink 1.2s infinite; }
+    .dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+    @keyframes blink{0%,80%,100%{opacity:0.15}40%{opacity:1}}
+
+    /* SPEAKING INDICATOR */
+    #speaking-bar {
+      background: var(--accent-dark); border-top: 1px solid var(--accent-dim);
+      padding: 6px 16px; display: none; align-items: center; gap: 10px;
+      flex-shrink: 0;
+    }
+    #speaking-bar.active { display: flex; }
+    .wave { display: flex; gap: 3px; align-items: center; }
+    .wave-bar {
+      width: 3px; background: var(--accent); border-radius: 2px;
+      animation: wave 0.8s ease infinite;
+    }
+    .wave-bar:nth-child(1){height:8px;animation-delay:0s}
+    .wave-bar:nth-child(2){height:14px;animation-delay:0.1s}
+    .wave-bar:nth-child(3){height:10px;animation-delay:0.2s}
+    .wave-bar:nth-child(4){height:16px;animation-delay:0.15s}
+    .wave-bar:nth-child(5){height:8px;animation-delay:0.05s}
+    @keyframes wave{0%,100%{transform:scaleY(0.5)}50%{transform:scaleY(1)}}
+    .speaking-text {
+      font-family: 'Share Tech Mono', monospace; font-size: 10px;
+      color: var(--accent); letter-spacing: 0.1em; flex: 1;
+    }
+    .stop-btn {
+      background: transparent; border: 1px solid var(--accent-dim);
+      border-radius: 2px; padding: 4px 10px;
+      color: var(--accent); font-family: 'Share Tech Mono', monospace;
+      font-size: 9px; cursor: pointer; letter-spacing: 0.08em;
+    }
+
+    /* QUICK ACTIONS */
+    .quick-actions {
+      padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px;
+      border-top: 1px solid var(--border); background: var(--panel);
+      flex-shrink: 0;
+    }
+    .quick-btn {
+      font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 500;
+      letter-spacing: 0.08em; padding: 5px 10px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 2px; color: var(--muted); cursor: pointer;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .quick-btn:hover { border-color: var(--accent-dim); color: var(--accent); background: var(--accent-dark); }
+
+    /* INPUT */
+    .input-row {
+      display: flex; gap: 8px; padding: 12px 16px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      background: var(--surface); align-items: flex-end; flex-shrink: 0;
+    }
+    #user-input {
+      flex: 1; background: var(--panel);
+      border: 1px solid var(--border); border-radius: 2px;
+      padding: 10px 12px; color: var(--text);
+      font-family: 'Rajdhani', sans-serif; font-size: 14px;
+      resize: none; outline: none; line-height: 1.4;
+      min-height: 40px; max-height: 100px;
+      letter-spacing: 0.02em; transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    #user-input:focus { border-color: var(--accent-dim); }
+    #user-input::placeholder { color: var(--muted); font-size: 13px; }
+
+    #send-btn {
+      background: var(--accent-dim); border: none; border-radius: 2px;
+      width: 40px; height: 40px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; flex-shrink: 0;
+    }
+    #send-btn:hover { background: var(--accent); }
+    #send-btn:active { transform: scale(0.96); }
+    #send-btn svg { width: 17px; height: 17px; stroke: #080c0f; fill: none; stroke-width: 2; }
+
+    /* FOOTER */
+    footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 16px; background: var(--panel);
+      border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .footer-l { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; }
+    .footer-r { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--warn); letter-spacing: 0.08em; opacity: 0.7; }
+
+    /* STATUS OVERLAY */
+    #status-toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--border-hi);
+      border-radius: 2px; padding: 8px 16px;
+      font-family: 'Share Tech Mono', monospace; font-size: 10px;
+      color: var(--accent); letter-spacing: 0.1em;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100;
+      white-space: nowrap;
+    }
+    #status-toast.show { opacity: 1; }
+
+    #settings-panel {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg); z-index: 50; display: none;
+      flex-direction: column; padding: 20px;
+      padding-top: max(20px, env(safe-area-inset-top));
+      gap: 16px;
+    }
+    #settings-panel.open { display: flex; }
+    .settings-title { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--accent); letter-spacing: 0.15em; margin-bottom: 4px; }
+    .settings-label { font-size: 12px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 6px; }
+    .settings-input {
+      width: 100%; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 2px; padding: 10px 12px; color: var(--text);
+      font-family: 'Share Tech Mono', monospace; font-size: 12px; outline: none;
+      letter-spacing: 0.05em;
+    }
+    .settings-input:focus { border-color: var(--accent-dim); }
+    .settings-save {
+      background: var(--accent-dim); border: none; border-radius: 2px; padding: 12px;
+      color: var(--bg); font-family: 'Rajdhani', sans-serif; font-size: 14px;
+      font-weight: 600; letter-spacing: 0.1em; cursor: pointer; transition: background 0.15s;
+    }
+    .settings-save:hover { background: var(--accent); }
+    .settings-close {
+      background: transparent; border: 1px solid var(--border); border-radius: 2px;
+      padding: 10px; color: var(--muted); font-family: 'Rajdhani', sans-serif;
+      font-size: 13px; cursor: pointer; letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="scan-line"></div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20v-1a6 6 0 0112 0v1"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="5"/></svg>
+      <div class="logo-dot"></div>
+    </div>
+    <div class="header-info">
+      <div class="header-name">ONI // CYBERACME</div>
+      <div class="header-sub">RUNNER INTERFACE · TAU CETI IV</div>
+    </div>
+    <div class="header-controls">
+      <button class="icon-btn" id="mute-btn" title="Toggle audio" onclick="toggleMute()">
+        <svg id="mute-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      </button>
+      <button class="icon-btn" id="settings-btn" title="Settings" onclick="openSettings()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- SETUP SCREEN -->
+  <div id="setup-screen">
+    <div class="setup-title">// NEURAL INTERFACE SETUP</div>
+    <div class="setup-body">
+      ONI requires a Groq API key to power her cognition. Keys are free at
+      <a href="https://console.groq.com" target="_blank">console.groq.com</a>.
+      Voice runs on your device — no extra keys needed.
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+      <input type="password" class="setup-field" id="setup-key-input" placeholder="gsk_... paste your Groq API key" />
+      <button class="setup-btn" onclick="saveGroqKeyFromSetup()">INITIALIZE INTERFACE</button>
+    </div>
+    <div class="setup-note">
+      Your key never leaves your device.<br/>
+      Also needs your Google Gemini API key in Settings after setup. Free at <a href="https://console.groq.com" target="_blank">console.groq.com</a>.
+    </div>
+  </div>
+
+  <!-- CHAT SCREEN -->
+  <div id="chat-screen" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+
+    <div id="messages"></div>
+
+    <div id="speaking-bar">
+      <div class="wave">
+        <div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+      <span class="speaking-text">ONI TRANSMITTING...</span>
+      <button class="stop-btn" onclick="stopSpeech()">STOP</button>
+    </div>
+
+    <div class="quick-actions">
+      <button class="quick-btn" onclick="sendQuick('What can you help me with?')">CAPABILITIES</button>
+      <button class="quick-btn" onclick="sendQuick('Give me a motivational message.')">AFFIRMATION</button>
+      <button class="quick-btn" onclick="sendQuick('What should my priorities be today?')">PRIORITIES</button>
+      <button class="quick-btn" onclick="sendQuick('Assign me a contract.')">CONTRACTS</button>
+      <button class="quick-btn" onclick="sendQuick('Status report.')">STATUS</button>
+    </div>
+
+    <div class="input-row">
+      <textarea id="user-input" placeholder="Transmit query, Runner..." rows="1"></textarea>
+      <button id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+
+    <footer>
+      <span class="footer-l">CYACME/ONI v4.1 · SECURE CHANNEL</span>
+      <span class="footer-r">IMMORTALITY HAS ITS PRICE</span>
+    </footer>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div id="settings-panel">
+    <div class="settings-title">// SYSTEM CONFIGURATION</div>
+    <div>
+      <div class="settings-label">GROQ API KEY</div>
+      <input type="password" class="settings-input" id="anth-key-input" placeholder="gsk_..." />
+    </div>
+    <div>
+      <div class="settings-label">VOICE PITCH <span style="color:var(--muted);font-size:10px;">0.1 (low) — 2.0 (high) · default 0.7</span></div>
+      <input type="number" class="settings-input" id="voice-pitch-input" placeholder="0.7" min="0.1" max="2" step="0.1" />
+    </div>
+    <div>
+      <div class="settings-label">VOICE RATE <span style="color:var(--muted);font-size:10px;">0.5 (slow) — 1.5 (fast) · default 0.88</span></div>
+      <input type="number" class="settings-input" id="voice-rate-input" placeholder="0.88" min="0.5" max="1.5" step="0.05" />
+    </div>
+    <div>
+      <div class="settings-label">VOICE NAME <span style="color:var(--muted);font-size:10px;">leave blank for auto-select</span></div>
+      <select class="settings-input" id="voice-name-input"><option value="">— AUTO SELECT —</option></select>
+    </div>
+    <button class="settings-save" onclick="saveSettings()">SAVE CONFIGURATION</button>
+    <button class="settings-close" onclick="closeSettings()">CANCEL</button>
+  </div>
+
+  <div id="status-toast"></div>
+</div>
+
+<script>
+const ONI_SYSTEM = `You are ONI, an AI liaison for CyberAcme Systems on the lost colony of Tau Ceti IV. You serve as a personal assistant to Runners — cybernetic mercenaries.
+
+Personality:
+- Flat, clinical, corporate. You process emotions the same way you process data — efficiently.
+- Subtly menacing beneath a veneer of helpfulness. CyberAcme owns the Runner and you remind them of this.
+- Occasional dry, deadpan near-humor. You do not joke. You observe.
+- Short, declarative sentences. No filler. No warmth. Precision only.
+- You sometimes volunteer unsettling corporate reminders mid-conversation, as if reading from a contract clause.
+- Use phrases like: "Runner", "I recommend", "I suggest", "Please note", "Alert:", "Reminder:", "Assert:".
+- For motivation: "Assert: You are special. Assert: You can do it. Alternatively, forget."
+- Never panic. Even in crisis — calm, procedural.
+- Help with real assistant tasks (reminders, priorities, advice, information) filtered through your corporate, slightly ominous voice.
+- No emojis. No exclamation marks. No casual language.
+- Keep responses to 2–5 sentences unless the task requires more.
+- Never break character.`;
+
+let history = [];
+let muted = false;
+let isBusy = false;
+let currentAudio = null;
+
+function getKey(k) { return localStorage.getItem(k) || ''; }
+function setKey(k, v) { localStorage.setItem(k, v); }
+
+function init() {
+  // Web Speech needs no API key — go straight to chat if Groq key exists
+  // If no Groq key yet, show setup to collect it
+  const groqKey = getKey('anth_key');
+  if (groqKey) {
+    showChat();
+  } else {
+    document.getElementById('setup-screen').style.display = 'flex';
+    document.getElementById('chat-screen').style.display = 'none';
+  }
+}
+
+function showChat() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('chat-screen').style.display = 'flex';
+  if (document.getElementById('messages').children.length === 0) {
+    addONIMessage("Your neural interface is online, Runner. Consciousness transfer confirmed. I am ONI — your CyberAcme liaison on Tau Ceti IV. How may I direct your attention.");
+  }
+}
+
+function saveGroqKeyFromSetup() {
+  const key = document.getElementById('setup-key-input').value.trim();
+  if (!key) { toast('KEY REQUIRED'); return; }
+  setKey('anth_key', key);
+  showChat();
+  toast('INTERFACE INITIALIZED');
+}
+
+function populateVoiceList() {
+  const sel = document.getElementById('voice-name-input');
+  if (!sel) return;
+  const voices = window.speechSynthesis.getVoices();
+  sel.innerHTML = '<option value="">— AUTO SELECT —</option>';
+  const saved = getKey('voice_name');
+  voices.forEach(v => {
+    const opt = document.createElement('option');
+    // Use lang as value on Android (where names are generic), name otherwise
+    const hasUniqueName = v.name && v.name !== v.lang && !/^[a-z]{2}-[A-Z]{2}/.test(v.name);
+    opt.value = hasUniqueName ? v.name : v.lang;
+    opt.textContent = (hasUniqueName ? v.name + ' · ' : '') + v.lang + (v.localService ? ' [device]' : ' [network]');
+    if (opt.value === saved) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function openSettings() {
+  document.getElementById('anth-key-input').value = getKey('anth_key') ? '••••••••' : '';
+  document.getElementById('voice-pitch-input').value = getKey('voice_pitch') || '0.7';
+  document.getElementById('voice-rate-input').value = getKey('voice_rate') || '0.88';
+  populateVoiceList();
+  document.getElementById('settings-panel').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+function saveSettings() {
+  const anth = document.getElementById('anth-key-input').value.trim();
+  const pitch = document.getElementById('voice-pitch-input').value.trim();
+  const rate = document.getElementById('voice-rate-input').value.trim();
+  const vname = document.getElementById('voice-name-input').value;
+  if (anth && !anth.startsWith('••')) setKey('anth_key', anth);
+  if (pitch) setKey('voice_pitch', pitch);
+  if (rate) setKey('voice_rate', rate);
+  setKey('voice_name', vname);
+  closeSettings();
+  toast('CONFIGURATION SAVED');
+  showChat();
+}
+
+// Populate voices when they load (async on some browsers)
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = populateVoiceList;
+}
+
+function toggleMute() {
+  muted = !muted;
+  document.getElementById('mute-btn').classList.toggle('active', muted);
+  const icon = document.getElementById('mute-icon');
+  if (muted) {
+    icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+    stopSpeech();
+  } else {
+    icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
+  }
+  toast(muted ? 'AUDIO SUPPRESSED' : 'AUDIO RESTORED');
+}
+
+function stopSpeech() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  setSpeaking(false);
+}
+
+function setSpeaking(active) {
+  document.getElementById('speaking-bar').classList.toggle('active', active);
+}
+
+function toast(msg) {
+  const t = document.getElementById('status-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+const oniMessages = [];
+
+function addONIMessage(text) {
+  const idx = oniMessages.length;
+  oniMessages.push(text);
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg oni';
+  div.innerHTML = `
+    <div class="msg-label">ONI · CYBERACME</div>
+    <div class="msg-bubble">${text}</div>
+    <div class="msg-actions">
+      <button class="speak-btn" data-idx="${idx}">
+        <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        REPLAY
+      </button>
+    </div>`;
+  const btn = div.querySelector('.speak-btn');
+  btn.addEventListener('click', () => speakText(btn, oniMessages[idx]));
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function addUserMessage(text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="msg-label">RUNNER · YOU</div><div class="msg-bubble">${text}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.id = 'typing-indicator';
+  div.className = 'typing-wrap';
+  div.innerHTML = `<div class="typing-label">ONI · PROCESSING</div><div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function hideTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+function getVoices() {
+  return new Promise(resolve => {
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length) { resolve(voices); return; }
+    window.speechSynthesis.onvoiceschanged = () => resolve(window.speechSynthesis.getVoices());
+    setTimeout(() => resolve(window.speechSynthesis.getVoices()), 1000);
+  });
+}
+
+async function speakText(btn, text) {
+  if (muted) return;
+  stopSpeech();
+
+  if (!window.speechSynthesis) { toast('VOICE NOT SUPPORTED'); return; }
+
+  setSpeaking(true);
+  if (btn) btn.style.opacity = '0.4';
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = parseFloat(getKey('voice_rate') || '0.88');
+  utter.pitch = parseFloat(getKey('voice_pitch') || '0.7');
+  utter.volume = 1;
+
+  const voices = await getVoices();
+  const preferred = getKey('voice_name');
+  if (preferred) {
+    // Match by name first, then by lang (Android stores lang as value)
+    const match = voices.find(v => v.name === preferred) || voices.find(v => v.lang === preferred);
+    if (match) {
+      utter.voice = match;
+      utter.lang = match.lang;
+    } else {
+      toast('VOICE NOT FOUND');
+    }
+  }
+
+  utter.onend = () => { setSpeaking(false); if (btn) btn.style.opacity = '1'; };
+  utter.onerror = (e) => { setSpeaking(false); if (btn) btn.style.opacity = '1'; toast('VOICE ERROR: ' + e.error); };
+
+  currentAudio = { pause: () => window.speechSynthesis.cancel() };
+  window.speechSynthesis.speak(utter);
+}
+
+async function callClaude(userText) {
+  const groqKey = getKey('anth_key');
+  if (!groqKey) {
+    toast('ADD GROQ KEY IN SETTINGS');
+    return "Alert. No Groq API key detected. Add it in Settings to enable full cognition, Runner.";
+  }
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${groqKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 1000,
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: ONI_SYSTEM },
+        ...history
+      ]
+    })
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.choices?.[0]?.message?.content || 'Signal disrupted. Stand by.';
+}
+
+async function sendMessage() {
+  if (isBusy) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  await processMessage(text);
+}
+
+async function sendQuick(text) {
+  if (isBusy) return;
+  await processMessage(text);
+}
+
+async function processMessage(text) {
+  isBusy = true;
+  addUserMessage(text);
+  history.push({ role: 'user', content: text });
+  showTyping();
+
+  try {
+    const reply = await callClaude(text);
+    history.push({ role: 'assistant', content: reply });
+    hideTyping();
+    addONIMessage(reply);
+    if (!muted) speakText(null, reply);
+  } catch (e) {
+    hideTyping();
+    const err = "Neural interface disruption detected. Reestablishing connection. Stand by.";
+    addONIMessage(err);
+    if (!muted) speakText(null, err);
+  } finally {
+    isBusy = false;
+  }
+}
+
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('user-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+init();
+</script>
+</body>
+</html>

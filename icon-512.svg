@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#080c0f"/>
+  <rect x="2" y="2" width="508" height="508" fill="none" stroke="#2a7a60" stroke-width="4"/>
+  <circle cx="256" cy="192" r="58" fill="none" stroke="#4dd9ac" stroke-width="7"/>
+  <path d="M160 410v-20a96 96 0 01192 0v20" fill="none" stroke="#4dd9ac" stroke-width="7" stroke-linecap="round"/>
+  <line x1="50" y1="256" x2="96" y2="256" stroke="#4dd9ac" stroke-width="7" stroke-linecap="round"/>
+  <line x1="416" y1="256" x2="462" y2="256" stroke="#4dd9ac" stroke-width="7" stroke-linecap="round"/>
+  <line x1="256" y1="50" x2="256" y2="96" stroke="#4dd9ac" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="426" cy="86" r="14" fill="#4dd9ac"/>
+  <text x="256" y="495" font-family="monospace" font-size="28" fill="#2a7a60" text-anchor="middle" letter-spacing="10">ONI</text>
+</svg>
